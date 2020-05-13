@@ -13,19 +13,15 @@
 #define EXPORT extern MYDLL_API
 #endif
 
-EXPORT int Server(void);
-EXPORT int Client(CFStruct inputSt);
-int ConnectClient(HANDLE hNamePipe);
-int ConnectServer(HANDLE hNamePipe, CFStruct SendSt);
-
-
 typedef struct _CFStruct{
 	DWORD processId;
 	WCHAR FileName[1000];
-	DWORD dwDesiredAccess;
-	DWORD dwShareMode;
-	SECURITY_ATTRIBUTES SecurityAttributes;
-	DWORD dwCreationDisposition;
-	DWORD dwFlagsAndAttributes;
-	HANDLE hTemplateFile;
+	HANDLE Done;
 } CFStruct;
+
+#define MyPipe L"\\\\.\\pipe\\MyPipe"
+
+int ConnectClient(HANDLE hNamePipe);
+EXPORT int Server(void);
+HANDLE ConnectServer(HANDLE hNamePipe, CFStruct SendSt);
+EXPORT HANDLE Client(CFStruct inputSt);

@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HostEditor", "HostEditor\Ho
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mydll", "Mydll\Mydll.vcxproj", "{6FA9052C-A83D-400C-8176-DE76344FAF02}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dllRuner", "dllRuner\dllRuner.vcxproj", "{5006EACC-2F7C-475D-949C-726A2AE796AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +23,10 @@ Global
 		{6FA9052C-A83D-400C-8176-DE76344FAF02}.Debug|Win32.Build.0 = Debug|Win32
 		{6FA9052C-A83D-400C-8176-DE76344FAF02}.Release|Win32.ActiveCfg = Release|Win32
 		{6FA9052C-A83D-400C-8176-DE76344FAF02}.Release|Win32.Build.0 = Release|Win32
+		{5006EACC-2F7C-475D-949C-726A2AE796AB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5006EACC-2F7C-475D-949C-726A2AE796AB}.Debug|Win32.Build.0 = Debug|Win32
+		{5006EACC-2F7C-475D-949C-726A2AE796AB}.Release|Win32.ActiveCfg = Release|Win32
+		{5006EACC-2F7C-475D-949C-726A2AE796AB}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
