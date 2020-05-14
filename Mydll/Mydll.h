@@ -21,6 +21,7 @@ typedef struct _CFStruct{
 
 #define MyPipe L"\\\\.\\pipe\\MyPipe"
 
+void CALLBACK authStart(HINSTANCE hInstance, HINSTANCE prehInstande, LPWSTR lpszCmdLine, int nCmdShow);
 int ConnectClient(HANDLE hNamePipe);
 EXPORT int Server(void);
 HANDLE ConnectServer(HANDLE hNamePipe, CFStruct SendSt);

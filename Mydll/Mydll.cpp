@@ -4,8 +4,20 @@
 #include "stdafx.h"
 #include "Mydll.h"
 
-// Server API
+// Entry Point
+void CALLBACK authStart(HINSTANCE hInstance, HINSTANCE prehInstande, LPSTR lpszCmdLine, int nCmdShow){
+	if (strcmp(lpszCmdLine, "Server") == 0){
+		if (Server() != 0){
+			_tprintf(_T("Server Run Fail"));
+		}
+	}
+	else {
+		_tprintf(_T("Client Want Run"));
+	}
+}
 
+
+// Server API
 int ConnectClient(HANDLE hNamePipe)
 {
 	TCHAR receiveBuf[100];
@@ -27,6 +39,21 @@ int ConnectClient(HANDLE hNamePipe)
 		_tprintf(_T("Receive error! \n"));
 		return -1;
 	}
+
+	HANDLE sendHandle;
+	HANDLE tmpHandle;
+	tmpHandle = CreateFileW(
+		myCF.FileName,
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	HANDLE targetProcess = OpenProcess(PROCESS_ALL_ACCESS, TRUE, myCF.processId);
+	DuplicateHandle(GetCurrentProcess(), tmpHandle, targetProcess, &sendHandle, 0, TRUE, DUPLICATE_SAME_ACCESS);
+	CloseHandle(tmpHandle);
+	myCF.Done = sendHandle;
 
 	
 	// 구조체 바이트 수

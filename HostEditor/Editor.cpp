@@ -13,9 +13,10 @@ HANDLE g_hMainDlg;
 HANDLE g_hFile;
 #define BUFSIZE 2048
 
-WCHAR* AtoW(CHAR* input){
-	WCHAR *wString;
-
+LPWSTR AtoW(CHAR *input, UINT strLength){
+	WCHAR wString[BUFSIZE] = { 0, };
+	int nLen = MultiByteToWideChar(CP_ACP, 0, input, strLength, NULL, NULL);
+	MultiByteToWideChar(CP_ACP, 0, input, strLength, wString, nLen);
 	return wString;
 }
 
@@ -29,6 +30,9 @@ BOOL readFile(HWND hwnd){
 		// 파일 읽어서 chBuf에 저장하고 읽은 크기를 dwRead에 저장
 		bSuccess = ReadFile(g_hFile, chBuf, BUFSIZE, &dwRead, NULL);
 		if (!bSuccess || dwRead == 0) break;
+		if (dwRead < BUFSIZE){
+			chBuf[dwRead] = '\0';
+		}
 
 		// STDOUT 핸들에 chBuf 내용 쓰기
 		//bSuccess = WriteFile(hStdout, chBuf, dwRead, &dwWritten, NULL);
