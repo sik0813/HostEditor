@@ -5,8 +5,10 @@
 #include "Mydll.h"
 
 // Entry Point
-void CALLBACK authStart(HINSTANCE hInstance, HINSTANCE prehInstande, LPSTR lpszCmdLine, int nCmdShow){
+HWND g_hwnd;
+void CALLBACK authStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lpszCmdLine, int nCmdShow){
 	if (strcmp(lpszCmdLine, "Server") == 0){
+		g_hwnd = (HWND)hMInstance;
 		if (Server() != 0){
 			wprintf(L"Server Run Fail");
 		}
@@ -50,7 +52,8 @@ int ConnectClient(HANDLE hNamePipe)
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
-	if (tmpHandle == NULL){
+	if (tmpHandle == INVALID_HANDLE_VALUE){
+		//MessageBoxW(g_hwnd, L"CreateFile error!", L"ERROR", MB_OK);
 		wprintf(L"CreateFile error! \n");
 		return -1;
 	}
@@ -82,6 +85,18 @@ EXPORT int Server(void)
 	wprintf(L"Run Server \n");
 	HANDLE hNamedPipe;
 	WCHAR pipe_name[] = MyPipe;
+
+	SECURITY_ATTRIBUTES sa = { sizeof(sa), };
+	sa.bInheritHandle = TRUE;
+
+	SECURITY_DESCRIPTOR sd;
+	InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+
+	// 두번째 인자 TRUE 세번째 인자 사용
+	// 세번? 인자 NULL allows all access to the objeclt
+	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
+	sa.lpSecurityDescriptor = &sd;
+
 	hNamedPipe = CreateNamedPipe(
 		pipe_name,
 		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
@@ -90,7 +105,7 @@ EXPORT int Server(void)
 		0,
 		0,
 		20000,       // 대기 Timeout 시간
-		NULL
+		&sa
 		);
 	if (hNamedPipe == INVALID_HANDLE_VALUE)
 	{

@@ -48,12 +48,12 @@ BOOL reloadFile(HWND hwnd){
 		StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
 		g_hFile = Client(myST);
 		if (g_hFile == NULL){
-			SetWindowTextW(hwnd, L"Fail");
+			MessageBoxW(hwnd, L"파일 핸들 에러", L"Fail", MB_OK);
 			return(FALSE);
 		}
 	}
-	SetWindowTextW(hwnd, L"Hosts");
 	readFile(hwnd);
+	MessageBoxW(hwnd, L"새로고침 완료", L"Success", MB_OK);
 	return TRUE;
 }
 
@@ -62,19 +62,19 @@ BOOL Dlg_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 	/*
 	1. 
 	*/
+	SetWindowTextW(hwnd, L"Hosts");
 	SetWindowText(GetDlgItem(hwnd, IDC_CONTENT), TEXT(""));
 	CFStruct myST = { 0, };
 	myST.processId = GetCurrentProcessId();
 	StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
 	g_hFile = Client(myST);
 	if (g_hFile == NULL){
-		SetWindowTextW(hwnd, L"Fail");
+		MessageBoxW(hwnd, L"파일 핸들 에러", L"Fail", MB_OK);
 		return(TRUE);
 	}
-	SetWindowTextW(hwnd, L"Hosts");
 	g_hMainDlg = hwnd;
 	readFile(hwnd);
-
+	MessageBoxW(hwnd, L"열기 완료", L"Success", MB_OK);
 	return(TRUE);
 }
 
