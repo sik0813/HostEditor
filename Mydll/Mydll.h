@@ -1,6 +1,5 @@
 #include <Windows.h>
 #include <stdio.h>
-#include <strsafe.h>
 
 #ifdef MYDLL_EXPORTS
 #define MYDLL_API __declspec(dllexport)
@@ -14,17 +13,17 @@
 #define EXPORT extern MYDLL_API
 #endif
 
-#define FILE_LENGTH 1000
+#define FILENAMELEN 1000
+
 typedef struct _CFStruct{
 	DWORD processId;
-	WCHAR FileName[FILE_LENGTH];
+	WCHAR FileName[FILENAMELEN];
 	HANDLE Done;
+	BOOL isRead;
 } CFStruct;
 
-#define MyPipe L"\\\\.\\pipe\\MyPipe"
-
-void CALLBACK authStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPWSTR lpszCmdLine, int nCmdShow);
-int ConnectClient(HANDLE hNamePipe);
-EXPORT int Server(void);
+VOID CALLBACK GetAuthStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lpszCmdLine, int nCmdShow);
+VOID ConnectClient(HANDLE hNamePipe);
+EXPORT int RunServer(void);
 HANDLE ConnectServer(HANDLE hNamePipe, CFStruct SendSt);
-EXPORT HANDLE Client(CFStruct inputSt);
+EXPORT HANDLE RunClient(CFStruct inputSt);

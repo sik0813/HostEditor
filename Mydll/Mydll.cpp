@@ -4,47 +4,43 @@
 #include "stdafx.h"
 #include "Mydll.h"
 
+LPCWSTR kPipeName = L"\\\\.\\pipe\\MyPipe";
+
 // Entry Point
-HWND g_hwnd;
-void CALLBACK authStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lpszCmdLine, int nCmdShow){
-	if (strcmp(lpszCmdLine, "Server") == 0){
-		g_hwnd = (HWND)hMInstance;
-		if (Server() != 0){
+void CALLBACK GetAuthStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lpszCmdLine, int nCmdShow)
+{
+	if (0 == strcmp(lpszCmdLine, "Server"))
+	{
+		if (0 != RunServer())
+		{
+			//MessageBoxW(g_hwnd, L"Server Run Fail!", L"ERROR", MB_OK);
 			wprintf(L"Server Run Fail");
 		}
 	}
-	else {
-		wprintf(L"Client Want Run");
-	}
 }
 
-
 // Server API
-int ConnectClient(HANDLE hNamePipe)
+VOID ConnectClient(HANDLE namedPipe)
 {
-	WCHAR receiveBuf[100];
-	WCHAR sendBuf[100];
-	DWORD dwRecvSize;
-	DWORD dwSendSize;
-	CFStruct myCF;
+	DWORD recvSize = 0;
+	DWORD sendSize = 0;
+	BOOL successFunc = FALSE;
 
+	CFStruct myCF;
 	memset(&myCF, 0, sizeof(myCF)); // 데이터 수신 전 초기화
+
 	// 구조체 바이트 수
-	if (!(ReadFile(
-		hNamePipe,
-		&myCF,
-		sizeof(CFStruct),
-		&dwRecvSize,
-		NULL
-		)))
+	successFunc = ReadFile(namedPipe, &myCF, sizeof(CFStruct), &recvSize, NULL);
+	if (!successFunc)
 	{
+		//MessageBoxW(g_hwnd, L"Receive error!", L"ERROR", MB_OK);
 		wprintf(L"Receive error! \n");
-		return -1;
+		return;
 	}
 
-	HANDLE sendHandle;
-	HANDLE tmpHandle;
-	tmpHandle = CreateFileW(
+	HANDLE copyHandle = INVALID_HANDLE_VALUE;
+	HANDLE sendHandle = INVALID_HANDLE_VALUE;
+	sendHandle = CreateFileW(
 		myCF.FileName,
 		GENERIC_READ | GENERIC_WRITE,
 		0,
@@ -52,53 +48,99 @@ int ConnectClient(HANDLE hNamePipe)
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
-	if (tmpHandle == INVALID_HANDLE_VALUE){
-		//MessageBoxW(g_hwnd, L"CreateFile error!", L"ERROR", MB_OK);
-		wprintf(L"CreateFile error! \n");
-		return -1;
-	}
-	HANDLE targetProcess = OpenProcess(PROCESS_ALL_ACCESS, TRUE, myCF.processId);
-	DuplicateHandle(GetCurrentProcess(), tmpHandle, targetProcess, &sendHandle, 0, TRUE, DUPLICATE_SAME_ACCESS);
-	CloseHandle(tmpHandle);
-	myCF.Done = sendHandle;
-
 	
+	if (INVALID_HANDLE_VALUE == sendHandle)
+	{
+		//MessageBoxW(g_hwnd, L"CreateFile Fail", L"ERROR", MB_OK);
+		wprintf(L"CreateFile Fail\n");
+		myCF.Done = INVALID_HANDLE_VALUE;
+	}
+	else
+	{
+		HANDLE targetProcess = OpenProcess(
+			PROCESS_ALL_ACCESS,
+			TRUE,
+			myCF.processId);
+		if (NULL == targetProcess)
+		{
+			wprintf(L"OpenProcess fail: %d \n", GetLastError());
+			return;
+		}
+		successFunc = DuplicateHandle(
+			GetCurrentProcess(),
+			sendHandle,
+			targetProcess,
+			&copyHandle,
+			0,
+			TRUE,
+			DUPLICATE_SAME_ACCESS);
+		if (!successFunc)
+		{
+			wprintf(L"DuplicateHandle fail! \n");
+			return;
+		}
+
+		successFunc = CloseHandle(sendHandle);
+		sendHandle = INVALID_HANDLE_VALUE;
+		if (!successFunc)
+		{
+			wprintf(L"CloseHandle fail! \n");
+			return;
+		}
+
+		myCF.Done = copyHandle;
+	}
+
 	// 구조체 바이트 수
-	if (!(WriteFile(
-		hNamePipe,
+	successFunc = WriteFile(
+		namedPipe,
 		&myCF,
 		sizeof(CFStruct),
-		&dwSendSize,
-		NULL
-		)))          // 
+		&sendSize,
+		NULL);
+	if (!successFunc)
 	{
 		wprintf(L"Send error! \n");
-		return -1;
+		return;
 	}
-	FlushFileBuffers(hNamePipe);
 
-	return -1;
+	FlushFileBuffers(namedPipe);
+
+	return;
 }
 
-EXPORT int Server(void)
+EXPORT BOOL RunServer(void)
 {
 	wprintf(L"Run Server \n");
-	HANDLE hNamedPipe;
-	WCHAR pipe_name[] = MyPipe;
-
-	SECURITY_ATTRIBUTES sa = { sizeof(sa), };
-	sa.bInheritHandle = TRUE;
 
 	SECURITY_DESCRIPTOR sd;
-	InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+	BOOL successFunc = InitializeSecurityDescriptor(
+		&sd,
+		SECURITY_DESCRIPTOR_REVISION);
+	if (!successFunc)
+	{
+		wprintf(L"InitializeSecurityDescriptor Fail \n");
+		return -1;
+	}
 
-	// 두번째 인자 TRUE 세번째 인자 사용
-	// 세번? 인자 NULL allows all access to the objeclt
-	SetSecurityDescriptorDacl(&sd, TRUE, NULL, FALSE);
+	successFunc = SetSecurityDescriptorDacl(
+		&sd,
+		TRUE, // TRUE 세번째 인자 사용
+		NULL, // NULL allows all access to the objeclt
+		FALSE);
+	if (!successFunc)
+	{
+		wprintf(L"SetSecurityDescriptorDacl Fail \n");
+		return -1;
+	}
+
+	SECURITY_ATTRIBUTES sa;
+	memset(&sa, 0, sizeof(SECURITY_ATTRIBUTES));
+	sa.bInheritHandle = TRUE;
 	sa.lpSecurityDescriptor = &sd;
 
-	hNamedPipe = CreateNamedPipe(
-		pipe_name,
+	HANDLE namedPipe = CreateNamedPipe(
+		kPipeName,
 		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
 		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
 		PIPE_UNLIMITED_INSTANCES,
@@ -107,32 +149,39 @@ EXPORT int Server(void)
 		20000,       // 대기 Timeout 시간
 		&sa
 		);
-	if (hNamedPipe == INVALID_HANDLE_VALUE)
+	if (INVALID_HANDLE_VALUE == namedPipe)
 	{
 		wprintf(L"CreateNamePipe error! \n");
 		return -1;
 	}
+
 	while (1)
 	{
 		//생성한 Named Pipe의 핸들을 누군가 얻어갈 때까지 대기..
-		if (!(ConnectNamedPipe(hNamedPipe, NULL)))
+		successFunc = ConnectNamedPipe(
+			namedPipe,
+			NULL);
+		if (!successFunc)
 		{
-			CloseHandle(hNamedPipe);
+			CloseHandle(namedPipe);
+			namedPipe = INVALID_HANDLE_VALUE;
 			return -1;
 		}
 		else
 		{
-			if (ConnectClient(hNamedPipe) == -1)
+			ConnectClient(namedPipe);
+			successFunc = DisconnectNamedPipe(namedPipe);
+			if (!successFunc)
 			{
-				if (!DisconnectNamedPipe(hNamedPipe))
-				{
-					wprintf(L"DisconnectNamedPipe failed with %d.\n", GetLastError());
-				}
-				wprintf(L"Send & Disconnect Done\n");
+				wprintf(L"DisconnectNamedPipe failed with %d.\n", GetLastError());
 			}
+
+			wprintf(L"Send & Disconnect Done\n");
 		}
 	}
-	CloseHandle(hNamedPipe);
+
+	CloseHandle(namedPipe);
+	namedPipe = INVALID_HANDLE_VALUE;
 	return 0;
 }
 
@@ -140,64 +189,82 @@ EXPORT int Server(void)
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 // Client API
-EXPORT HANDLE Client(CFStruct inputSt)
+EXPORT HANDLE RunClient(CFStruct inputSt)
 {
-	HANDLE hNamePipe;
-	WCHAR pipe_name[] = MyPipe;
-	HANDLE returnHandle;
+	BOOL sucessFunc = FALSE;
+
 	// 서버에서 생성한 파이프 이름으로 핸들 열기 CallNamedPipe
-	hNamePipe = CreateFile(pipe_name, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (hNamePipe == INVALID_HANDLE_VALUE)
+	HANDLE namedPipe = CreateFile(
+		kPipeName,
+		GENERIC_READ | GENERIC_WRITE,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		0,
+		NULL);
+	if (INVALID_HANDLE_VALUE == namedPipe)
 	{
 		wprintf(L"CreateFile error! \n");
-		return NULL;
+		return INVALID_HANDLE_VALUE;
 	}
 
 	DWORD pipeMode = PIPE_READMODE_MESSAGE | PIPE_WAIT;
-	if (!(SetNamedPipeHandleState(hNamePipe, &pipeMode, NULL, NULL)))
+	sucessFunc = SetNamedPipeHandleState(
+		namedPipe,
+		&pipeMode,
+		NULL,
+		NULL);
+	if (!sucessFunc)
 	{
 		wprintf(L"SetNamedPipeHandleState error! \n");
-		CloseHandle(hNamePipe);
-		return NULL;
+		CloseHandle(namedPipe);
+		namedPipe = INVALID_HANDLE_VALUE;
+		return INVALID_HANDLE_VALUE;
 	}
-	returnHandle = ConnectServer(hNamePipe, inputSt);
-	CloseHandle(hNamePipe);
-	HANDLE test = (void*)100;
-	
-	return returnHandle;
+
+	HANDLE returnValue = ConnectServer(namedPipe, inputSt);
+
+	sucessFunc = CloseHandle(namedPipe);
+	namedPipe = INVALID_HANDLE_VALUE;
+	if (!sucessFunc)
+	{
+		wprintf(L"CloseHandle error! \n");
+	}
+
+	return returnValue;
 }
 
 // Client 에서 Server 연결
 HANDLE ConnectServer(HANDLE hNamePipe, CFStruct myCF)
 {
-	WCHAR receiveBuf[100];
-	WCHAR sendBuf[100];
-	DWORD dwRecvSize;
-	DWORD dwSendSize;
+	DWORD recvSize = 0;
+	DWORD sendSize = 0;
+	BOOL successFunc = FALSE;
 
 	// 전송할 데이터
-	if (!(WriteFile(
+	successFunc = WriteFile(
 		hNamePipe,
 		&myCF,
 		sizeof(CFStruct),
-		&dwSendSize,
-		NULL
-		)))
+		&sendSize,
+		NULL);
+	if (!successFunc)
 	{
 		wprintf(L"Send error! \n");
-		return NULL;
+		return INVALID_HANDLE_VALUE;
 	}
 
-	if (!(ReadFile(
+	// 전송 받은 데이터
+	successFunc = ReadFile(
 		hNamePipe,
 		&myCF,
 		sizeof(CFStruct),
-		&dwRecvSize,
-		NULL
-		)))
+		&recvSize,
+		NULL);
+	if (!successFunc)
 	{
 		wprintf(L"Receive error! \n");
-		return NULL;
+		return INVALID_HANDLE_VALUE;
 	}
 
 	FlushFileBuffers(hNamePipe);

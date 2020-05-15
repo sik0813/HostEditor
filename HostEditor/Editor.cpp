@@ -1,80 +1,126 @@
 #include <Windows.h>
 #include <windowsx.h>
+#include <strsafe.h>
 #include "resource.h"
 #include "..\Mydll\Mydll.h"
 
 #define chHANDLE_DLGMSG(hWnd, message, fn)                 \
    case (message): return (SetDlgMsgResult(hWnd, uMsg,     \
       HANDLE_##message((hWnd), (wParam), (lParam), (fn))))
+#define BUFSIZE 4096
 
-HANDLE g_hMainDlg;
 
-HANDLE g_hFile;
-#define BUFSIZE 2048
-CONST LPWSTR FileName = L"C:\\Users\\newlcb0813\\Desktop\\hosts";
+HANDLE gMainDlgHandle;
+LPCWSTR kFileName = L"C:\\Windows\\System32\\drivers\\etc\\hosts";
+//LPCWSTR FILE_NAME = L"C:\\Users\\newlcb0813\\Desktop\\hosts";
+HANDLE gReadFile;
 
-LPWSTR AtoW(CHAR *input, UINT strLength){
-	WCHAR wString[BUFSIZE] = { 0, };
-	int nLen = MultiByteToWideChar(CP_ACP, 0, input, strLength, NULL, NULL);
-	MultiByteToWideChar(CP_ACP, 0, input, strLength, wString, nLen);
-	return wString;
-}
+BOOL readFile(HWND hwnd) {
+	BOOL successFunc = FALSE;
+	CHAR readFileBuf[BUFSIZE];
+	DWORD readSize = 0;
+	LPWSTR wideString = NULL;
 
-BOOL readFile(HWND hwnd){
-	BOOL bSuccess;
-	CHAR chBuf[BUFSIZE];
-	DWORD dwRead, dwWritten;
-
-	HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-	for (;;){
+	while (1)
+	{
 		// 파일 읽어서 chBuf에 저장하고 읽은 크기를 dwRead에 저장
-		bSuccess = ReadFile(g_hFile, chBuf, BUFSIZE, &dwRead, NULL);
-		if (!bSuccess || dwRead == 0) break;
-		if (dwRead < BUFSIZE){
-			chBuf[dwRead] = '\0';
+		successFunc = ReadFile(gReadFile, readFileBuf, BUFSIZE, &readSize, NULL);
+		if (!successFunc || readSize == 0)
+		{
+			break;
 		}
 
-		bSuccess = SetWindowTextA(GetDlgItem(hwnd, IDC_CONTENT), chBuf);
-		if (!bSuccess)
+		if (readSize < BUFSIZE)
+		{
+			readFileBuf[readSize] = '\0';
+		}
+
+		//wideString = new WCHAR[readSize];
+		//MultiByteToWideChar(CP_ACP, 0, readFileBuf, readSize, wideString, readSize);
+
+		//LPWSTR tmp = AtoW(chBuf, dwRead);
+
+		successFunc = SetWindowTextA(GetDlgItem(hwnd, IDC_CONTENT), readFileBuf);
+		//delete wideString;
+		if (!successFunc)
+		{
 			break;
+		}
 	}
+
+	successFunc = CloseHandle(gReadFile);
+	gReadFile = INVALID_HANDLE_VALUE;
+	if (!successFunc)
+	{
+		MessageBoxW(hwnd, L"CloseHandleFail", L"Fail", MB_OK);
+		return(FALSE);
+	}
+
 	return TRUE;
 }
 
-BOOL reloadFile(HWND hwnd){
+BOOL reloadFile(HWND hwnd)
+{
 	CFStruct myST = { 0, };
-	if (g_hFile == NULL){
-		myST.processId = GetCurrentProcessId();
-		StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
-		g_hFile = Client(myST);
-		if (g_hFile == NULL){
-			MessageBoxW(hwnd, L"파일 핸들 에러", L"Fail", MB_OK);
-			return(FALSE);
-		}
+	BOOL successFunc;
+	myST.processId = GetCurrentProcessId();
+	myST.isRead = TRUE;
+	myST.Done = INVALID_HANDLE_VALUE;
+
+	HRESULT SuccessCopyString = StringCchCopyW(myST.FileName, (wcslen(kFileName) + 1) * sizeof(WCHAR), kFileName);
+	if (S_OK != SuccessCopyString)
+	{
+		MessageBoxW(hwnd, L"StringCchCopyW Error", L"Fail", MB_OK);
 	}
-	readFile(hwnd);
-	MessageBoxW(hwnd, L"새로고침 완료", L"Success", MB_OK);
+
+	gReadFile = RunClient(myST);
+	if (INVALID_HANDLE_VALUE == gReadFile)
+	{
+		MessageBoxW(hwnd, L"파일핸들 수신 에러", L"Fail", MB_OK);
+		return(FALSE);
+	}
+
+	successFunc = readFile(hwnd);
+	if (!successFunc)
+	{
+		MessageBoxW(hwnd, L"파일읽기 실패", L"Fail", MB_OK);
+		return FALSE;
+	}
+
+	MessageBoxW(hwnd, L"파일새로고침 완료", L"Success", MB_OK);
 	return TRUE;
 }
 
 // 다이얼로그 초기화
-BOOL Dlg_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
-	/*
-	1. 
-	*/
+BOOL OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam)
+{
+	BOOL successFunc = FALSE;
+
 	SetWindowTextW(hwnd, L"Hosts");
 	SetWindowText(GetDlgItem(hwnd, IDC_CONTENT), TEXT(""));
-	CFStruct myST = { 0, };
+
+	CFStruct myST;
+	memset(&myST, 0, sizeof(CFStruct));
 	myST.processId = GetCurrentProcessId();
-	StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
-	g_hFile = Client(myST);
-	if (g_hFile == NULL){
-		MessageBoxW(hwnd, L"파일 핸들 에러", L"Fail", MB_OK);
+	myST.isRead = TRUE;
+	myST.Done = INVALID_HANDLE_VALUE;
+
+	HRESULT SuccessCopyString = StringCchCopyW(myST.FileName, (wcslen(kFileName) + 1) * sizeof(WCHAR), kFileName);
+	if (S_OK != SuccessCopyString)
+	{
+		MessageBoxW(hwnd, L"StringCchCopyW Error", L"Fail", MB_OK);
+	}
+
+	gReadFile = RunClient(myST);
+	if (INVALID_HANDLE_VALUE == gReadFile)
+	{
+		MessageBoxW(hwnd, L"파일핸들 수신 에러", L"Fail", MB_OK);
 		return(TRUE);
 	}
-	g_hMainDlg = hwnd;
+
+	gMainDlgHandle = hwnd;
 	readFile(hwnd);
-	MessageBoxW(hwnd, L"열기 완료", L"Success", MB_OK);
+	MessageBoxW(hwnd, L"파일오픈 완료", L"Success", MB_OK);
 	return(TRUE);
 }
 
@@ -82,11 +128,13 @@ BOOL Dlg_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 ///////////////////////////////////////////////////////////////////////////////
 
 
-void Dlg_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
-
-	switch (id) {
+void OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify)
+{
+	switch (id)
+	{
 	case IDCANCEL:
-		CloseHandle(g_hFile);
+		//CloseHandle(g_hFileRead); 
+		//CloseHandle(g_hFileWrite);
 		EndDialog(hwnd, id);
 		break;
 	case IDC_REFRESH:
@@ -98,17 +146,20 @@ void Dlg_OnCommand(HWND hwnd, int id, HWND hwndCtl, UINT codeNotify) {
 }
 
 
-INT_PTR WINAPI Dlg_Proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	switch (uMsg) {
-		chHANDLE_DLGMSG(hwnd, WM_INITDIALOG, Dlg_OnInitDialog);
-		chHANDLE_DLGMSG(hwnd, WM_COMMAND, Dlg_OnCommand);
+INT_PTR WINAPI RunnignProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+		chHANDLE_DLGMSG(hwnd, WM_INITDIALOG, OnInitDialog);
+		chHANDLE_DLGMSG(hwnd, WM_COMMAND, OnCommand);
 	}
 
 	return(FALSE);
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow){
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow)
+{
 	LocalAlloc(LOCALE_ALL, 0);
-	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG), NULL, Dlg_Proc);
+	DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG), NULL, RunnignProc);
 	return 0;
 }
