@@ -1,6 +1,5 @@
 #include <Windows.h>
 #include <windowsx.h>
-#include <tchar.h>
 #include "resource.h"
 #include "..\Mydll\Mydll.h"
 
@@ -12,6 +11,7 @@ HANDLE g_hMainDlg;
 
 HANDLE g_hFile;
 #define BUFSIZE 2048
+CONST LPWSTR FileName = L"C:\\Users\\newlcb0813\\Desktop\\hosts";
 
 LPWSTR AtoW(CHAR *input, UINT strLength){
 	WCHAR wString[BUFSIZE] = { 0, };
@@ -34,8 +34,6 @@ BOOL readFile(HWND hwnd){
 			chBuf[dwRead] = '\0';
 		}
 
-		// STDOUT 핸들에 chBuf 내용 쓰기
-		//bSuccess = WriteFile(hStdout, chBuf, dwRead, &dwWritten, NULL);
 		bSuccess = SetWindowTextA(GetDlgItem(hwnd, IDC_CONTENT), chBuf);
 		if (!bSuccess)
 			break;
@@ -47,13 +45,14 @@ BOOL reloadFile(HWND hwnd){
 	CFStruct myST = { 0, };
 	if (g_hFile == NULL){
 		myST.processId = GetCurrentProcessId();
+		StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
 		g_hFile = Client(myST);
 		if (g_hFile == NULL){
-			SetWindowTextW(hwnd, _T("Fail"));
+			SetWindowTextW(hwnd, L"Fail");
 			return(FALSE);
 		}
 	}
-	SetWindowTextW(hwnd, _T("Hosts"));
+	SetWindowTextW(hwnd, L"Hosts");
 	readFile(hwnd);
 	return TRUE;
 }
@@ -66,12 +65,13 @@ BOOL Dlg_OnInitDialog(HWND hwnd, HWND hwndFocus, LPARAM lParam) {
 	SetWindowText(GetDlgItem(hwnd, IDC_CONTENT), TEXT(""));
 	CFStruct myST = { 0, };
 	myST.processId = GetCurrentProcessId();
+	StringCchCopyW(myST.FileName, FILE_LENGTH, FileName);
 	g_hFile = Client(myST);
 	if (g_hFile == NULL){
-		SetWindowTextW(hwnd, _T("Fail"));
+		SetWindowTextW(hwnd, L"Fail");
 		return(TRUE);
 	}
-	SetWindowTextW(hwnd, _T("Hosts"));
+	SetWindowTextW(hwnd, L"Hosts");
 	g_hMainDlg = hwnd;
 	readFile(hwnd);
 

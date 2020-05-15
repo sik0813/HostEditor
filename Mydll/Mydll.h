@@ -1,5 +1,6 @@
 #include <Windows.h>
-#include <tchar.h>
+#include <stdio.h>
+#include <strsafe.h>
 
 #ifdef MYDLL_EXPORTS
 #define MYDLL_API __declspec(dllexport)
@@ -13,9 +14,10 @@
 #define EXPORT extern MYDLL_API
 #endif
 
+#define FILE_LENGTH 1000
 typedef struct _CFStruct{
 	DWORD processId;
-	WCHAR FileName[1000];
+	WCHAR FileName[FILE_LENGTH];
 	HANDLE Done;
 } CFStruct;
 

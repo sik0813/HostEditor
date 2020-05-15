@@ -8,11 +8,11 @@
 void CALLBACK authStart(HINSTANCE hInstance, HINSTANCE prehInstande, LPSTR lpszCmdLine, int nCmdShow){
 	if (strcmp(lpszCmdLine, "Server") == 0){
 		if (Server() != 0){
-			_tprintf(_T("Server Run Fail"));
+			wprintf(L"Server Run Fail");
 		}
 	}
 	else {
-		_tprintf(_T("Client Want Run"));
+		wprintf(L"Client Want Run");
 	}
 }
 
@@ -20,8 +20,8 @@ void CALLBACK authStart(HINSTANCE hInstance, HINSTANCE prehInstande, LPSTR lpszC
 // Server API
 int ConnectClient(HANDLE hNamePipe)
 {
-	TCHAR receiveBuf[100];
-	TCHAR sendBuf[100];
+	WCHAR receiveBuf[100];
+	WCHAR sendBuf[100];
 	DWORD dwRecvSize;
 	DWORD dwSendSize;
 	CFStruct myCF;
@@ -36,7 +36,7 @@ int ConnectClient(HANDLE hNamePipe)
 		NULL
 		)))
 	{
-		_tprintf(_T("Receive error! \n"));
+		wprintf(L"Receive error! \n");
 		return -1;
 	}
 
@@ -50,6 +50,10 @@ int ConnectClient(HANDLE hNamePipe)
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
+	if (tmpHandle == NULL){
+		wprintf(L"CreateFile error! \n");
+		return -1;
+	}
 	HANDLE targetProcess = OpenProcess(PROCESS_ALL_ACCESS, TRUE, myCF.processId);
 	DuplicateHandle(GetCurrentProcess(), tmpHandle, targetProcess, &sendHandle, 0, TRUE, DUPLICATE_SAME_ACCESS);
 	CloseHandle(tmpHandle);
@@ -65,7 +69,7 @@ int ConnectClient(HANDLE hNamePipe)
 		NULL
 		)))          // 
 	{
-		_tprintf(_T("Send error! \n"));
+		wprintf(L"Send error! \n");
 		return -1;
 	}
 	FlushFileBuffers(hNamePipe);
@@ -75,7 +79,7 @@ int ConnectClient(HANDLE hNamePipe)
 
 EXPORT int Server(void)
 {
-	_tprintf(_T("Run Server \n"));
+	wprintf(L"Run Server \n");
 	HANDLE hNamedPipe;
 	WCHAR pipe_name[] = MyPipe;
 	hNamedPipe = CreateNamedPipe(
@@ -90,7 +94,7 @@ EXPORT int Server(void)
 		);
 	if (hNamedPipe == INVALID_HANDLE_VALUE)
 	{
-		_tprintf(_T("CreateNamePipe error! \n"));
+		wprintf(L"CreateNamePipe error! \n");
 		return -1;
 	}
 	while (1)
@@ -107,9 +111,9 @@ EXPORT int Server(void)
 			{
 				if (!DisconnectNamedPipe(hNamedPipe))
 				{
-					_tprintf(_T("DisconnectNamedPipe failed with %d.\n"), GetLastError());
+					wprintf(L"DisconnectNamedPipe failed with %d.\n", GetLastError());
 				}
-				_tprintf(_T("Send & Disconnect Done\n"));
+				wprintf(L"Send & Disconnect Done\n");
 			}
 		}
 	}
@@ -130,14 +134,14 @@ EXPORT HANDLE Client(CFStruct inputSt)
 	hNamePipe = CreateFile(pipe_name, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (hNamePipe == INVALID_HANDLE_VALUE)
 	{
-		_tprintf(_T("CreateFile error! \n"));
+		wprintf(L"CreateFile error! \n");
 		return NULL;
 	}
 
 	DWORD pipeMode = PIPE_READMODE_MESSAGE | PIPE_WAIT;
 	if (!(SetNamedPipeHandleState(hNamePipe, &pipeMode, NULL, NULL)))
 	{
-		_tprintf(_T("SetNamedPipeHandleState error! \n"));
+		wprintf(L"SetNamedPipeHandleState error! \n");
 		CloseHandle(hNamePipe);
 		return NULL;
 	}
@@ -151,8 +155,8 @@ EXPORT HANDLE Client(CFStruct inputSt)
 // Client 에서 Server 연결
 HANDLE ConnectServer(HANDLE hNamePipe, CFStruct myCF)
 {
-	TCHAR receiveBuf[100];
-	TCHAR sendBuf[100];
+	WCHAR receiveBuf[100];
+	WCHAR sendBuf[100];
 	DWORD dwRecvSize;
 	DWORD dwSendSize;
 
@@ -165,7 +169,7 @@ HANDLE ConnectServer(HANDLE hNamePipe, CFStruct myCF)
 		NULL
 		)))
 	{
-		_tprintf(_T("Send error! \n"));
+		wprintf(L"Send error! \n");
 		return NULL;
 	}
 
@@ -177,7 +181,7 @@ HANDLE ConnectServer(HANDLE hNamePipe, CFStruct myCF)
 		NULL
 		)))
 	{
-		_tprintf(_T("Receive error! \n"));
+		wprintf(L"Receive error! \n");
 		return NULL;
 	}
 
