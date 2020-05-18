@@ -40,15 +40,28 @@ VOID ConnectClient(HANDLE namedPipe)
 
 	HANDLE copyHandle = INVALID_HANDLE_VALUE;
 	HANDLE sendHandle = INVALID_HANDLE_VALUE;
-	sendHandle = CreateFileW(
-		myCF.FileName,
-		GENERIC_READ | GENERIC_WRITE,
-		0,
-		NULL,
-		OPEN_EXISTING,
-		FILE_ATTRIBUTE_NORMAL,
-		NULL);
-	
+	if (TRUE == myCF.isRead) // read flag에 따라서 분류
+	{
+		sendHandle = CreateFileW(
+			myCF.FileName,
+			GENERIC_READ,
+			0,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+	}
+	else
+	{
+		sendHandle = CreateFileW(
+			myCF.FileName,
+			GENERIC_WRITE,
+			0,
+			NULL,
+			CREATE_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+	}
 	if (INVALID_HANDLE_VALUE == sendHandle)
 	{
 		//MessageBoxW(g_hwnd, L"CreateFile Fail", L"ERROR", MB_OK);
@@ -109,7 +122,7 @@ VOID ConnectClient(HANDLE namedPipe)
 	return;
 }
 
-EXPORT BOOL RunServer(void)
+EXPORT int RunServer(void)
 {
 	wprintf(L"Run Server \n");
 
