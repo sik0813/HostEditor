@@ -88,6 +88,11 @@
   <ItemGroup>
     <ResourceCompile Include="HostEditor.rc" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Mydll\Mydll.vcxproj">
+      <Project>{6fa9052c-a83d-400c-8176-de76344faf02}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

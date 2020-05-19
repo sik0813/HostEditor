@@ -20,6 +20,80 @@ void CALLBACK GetAuthStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lps
 }
 
 // Server API
+EXPORT int RunServer(void)
+{
+	wprintf(L"Run Server \n");
+
+	SECURITY_DESCRIPTOR sd;
+	BOOL successFunc = InitializeSecurityDescriptor(
+		&sd,
+		SECURITY_DESCRIPTOR_REVISION);
+	if (!successFunc)
+	{
+		wprintf(L"InitializeSecurityDescriptor Fail \n");
+		return -1;
+	}
+
+	successFunc = SetSecurityDescriptorDacl(
+		&sd,
+		TRUE, // TRUE 세번째 인자 사용
+		NULL, // NULL allows all access to the objeclt
+		FALSE);
+	if (!successFunc)
+	{
+		wprintf(L"SetSecurityDescriptorDacl Fail \n");
+		return -1;
+	}
+
+	SECURITY_ATTRIBUTES sa;
+	memset(&sa, 0, sizeof(SECURITY_ATTRIBUTES));
+	sa.bInheritHandle = TRUE;
+	sa.lpSecurityDescriptor = &sd;
+
+	HANDLE namedPipe = CreateNamedPipe(
+		kPipeName,
+		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
+		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+		PIPE_UNLIMITED_INSTANCES,
+		0,
+		0,
+		20000,       // 대기 Timeout 시간
+		&sa
+		);
+	if (INVALID_HANDLE_VALUE == namedPipe)
+	{
+		wprintf(L"CreateNamePipe error! \n");
+		return -1;
+	}
+
+	while (1)
+	{
+		//생성한 Named Pipe의 핸들을 누군가 얻어갈 때까지 대기..
+		successFunc = ConnectNamedPipe(
+			namedPipe,
+			NULL);
+		if (!successFunc)
+		{
+			CloseHandle(namedPipe);
+			namedPipe = INVALID_HANDLE_VALUE;
+			return -1;
+		}
+		ConnectClient(namedPipe);
+		successFunc = DisconnectNamedPipe(namedPipe);
+		if (!successFunc)
+		{
+			wprintf(L"DisconnectNamedPipe failed with %d.\n", GetLastError());
+		}
+
+		wprintf(L"Send & Disconnect Done\n");
+		
+	}
+
+	CloseHandle(namedPipe);
+	namedPipe = INVALID_HANDLE_VALUE;
+	return 0;
+}
+
 VOID ConnectClient(HANDLE namedPipe)
 {
 	DWORD recvSize = 0;
@@ -79,6 +153,7 @@ VOID ConnectClient(HANDLE namedPipe)
 			wprintf(L"OpenProcess fail: %d \n", GetLastError());
 			return;
 		}
+
 		successFunc = DuplicateHandle(
 			GetCurrentProcess(),
 			sendHandle,
@@ -90,6 +165,14 @@ VOID ConnectClient(HANDLE namedPipe)
 		if (!successFunc)
 		{
 			wprintf(L"DuplicateHandle fail! \n");
+			return;
+		}
+
+		successFunc = CloseHandle(targetProcess);
+		targetProcess = INVALID_HANDLE_VALUE;
+		if (!successFunc)
+		{
+			wprintf(L"CloseHandle fail! \n");
 			return;
 		}
 
@@ -120,82 +203,6 @@ VOID ConnectClient(HANDLE namedPipe)
 	FlushFileBuffers(namedPipe);
 
 	return;
-}
-
-EXPORT int RunServer(void)
-{
-	wprintf(L"Run Server \n");
-
-	SECURITY_DESCRIPTOR sd;
-	BOOL successFunc = InitializeSecurityDescriptor(
-		&sd,
-		SECURITY_DESCRIPTOR_REVISION);
-	if (!successFunc)
-	{
-		wprintf(L"InitializeSecurityDescriptor Fail \n");
-		return -1;
-	}
-
-	successFunc = SetSecurityDescriptorDacl(
-		&sd,
-		TRUE, // TRUE 세번째 인자 사용
-		NULL, // NULL allows all access to the objeclt
-		FALSE);
-	if (!successFunc)
-	{
-		wprintf(L"SetSecurityDescriptorDacl Fail \n");
-		return -1;
-	}
-
-	SECURITY_ATTRIBUTES sa;
-	memset(&sa, 0, sizeof(SECURITY_ATTRIBUTES));
-	sa.bInheritHandle = TRUE;
-	sa.lpSecurityDescriptor = &sd;
-
-	HANDLE namedPipe = CreateNamedPipe(
-		kPipeName,
-		PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED,
-		PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
-		PIPE_UNLIMITED_INSTANCES,
-		0,
-		0,
-		20000,       // 대기 Timeout 시간
-		&sa
-		);
-	if (INVALID_HANDLE_VALUE == namedPipe)
-	{
-		wprintf(L"CreateNamePipe error! \n");
-		return -1;
-	}
-
-	while (1)
-	{
-		//생성한 Named Pipe의 핸들을 누군가 얻어갈 때까지 대기..
-		successFunc = ConnectNamedPipe(
-			namedPipe,
-			NULL);
-		if (!successFunc)
-		{
-			CloseHandle(namedPipe);
-			namedPipe = INVALID_HANDLE_VALUE;
-			return -1;
-		}
-		else
-		{
-			ConnectClient(namedPipe);
-			successFunc = DisconnectNamedPipe(namedPipe);
-			if (!successFunc)
-			{
-				wprintf(L"DisconnectNamedPipe failed with %d.\n", GetLastError());
-			}
-
-			wprintf(L"Send & Disconnect Done\n");
-		}
-	}
-
-	CloseHandle(namedPipe);
-	namedPipe = INVALID_HANDLE_VALUE;
-	return 0;
 }
 
 
