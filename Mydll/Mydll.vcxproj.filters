@@ -24,6 +24,9 @@
     <ClInclude Include="Mydll.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="AuthAPI.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -33,6 +36,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AuthAPI.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

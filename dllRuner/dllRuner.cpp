@@ -1,9 +1,10 @@
 #include <Windows.h>
-#include "..\Mydll\Mydll.h"
+#include "..\Mydll\AuthAPI.h"
 
 using namespace std;
 
 int main(){
-	RunServer();
+	Server myServer;
+	myServer.RunServer();
 	return 0;
 }

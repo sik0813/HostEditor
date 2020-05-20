@@ -23,7 +23,3 @@ typedef struct _CFStruct{
 } CFStruct;
 
 VOID CALLBACK GetAuthStart(HINSTANCE hPInstance, HINSTANCE hMInstance, LPSTR lpszCmdLine, int nCmdShow);
-VOID ConnectClient(HANDLE hNamePipe);
-EXPORT int RunServer(void);
-HANDLE ConnectServer(HANDLE hNamePipe, CFStruct SendSt);
-EXPORT HANDLE RunClient(CFStruct inputSt);
